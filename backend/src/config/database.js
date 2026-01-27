@@ -17,6 +17,13 @@ const sequelize = new Sequelize(process.env.DATABASE_URL || {
     acquire: 30000,
     idle: 10000
   }
-});
+}, process.env.DATABASE_URL ? {
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  }
+} : {});
 
 export default sequelize;
