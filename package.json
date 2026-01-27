@@ -11,7 +11,7 @@
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "build": "npm run build --workspaces",
     "start": "npm run start --workspace=backend",
-    "heroku-postbuild": "npm install --workspace=frontend && npm run build --workspace=frontend && npm install --workspace=backend"
+    "heroku-postbuild": "cd frontend && npm install --include=dev && npm run build && cd ../backend && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
