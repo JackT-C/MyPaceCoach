@@ -7,6 +7,10 @@
     <title>MyPace - AI Running Coach</title>
   </head>
   <body>
+    <script>
+      // Prevent flash of wrong theme
+      (function(){var t=localStorage.getItem('mypace-theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}})();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

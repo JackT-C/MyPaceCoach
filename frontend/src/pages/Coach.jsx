@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { coach } from '../api'
-import { Send, Bot, User, Sparkles, TrendingUp, Target } from 'lucide-react'
+import { Send, Bot, User, Sparkles, Target } from 'lucide-react'
 
 export default function Coach() {
   const [message, setMessage] = useState('')
@@ -41,9 +41,7 @@ export default function Coach() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [conversation])
+  useEffect(() => { scrollToBottom() }, [conversation])
 
   const quickQuestions = [
     "How was my training last week?",
@@ -54,36 +52,29 @@ export default function Coach() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">AI Coach</h1>
-        <p className="text-gray-600 mt-1">Get personalized training advice and insights</p>
-      </div>
+      <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>AI Coach</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Chat */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Chat Container */}
-          <div className="card h-[600px] flex flex-col">
+        <div className="lg:col-span-2">
+          <div className="card h-[600px] flex flex-col !p-0">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {conversation.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mb-4">
-                    <Bot className="w-8 h-8 text-primary-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Hi! I'm your AI Running Coach
-                  </h3>
-                  <p className="text-gray-600 mb-6 max-w-md">
-                    Ask me anything about your training, get personalized advice, or discuss your running goals.
+                <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                  <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                    What can I help with today?
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full max-w-2xl">
+                  <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+                    Ask about your training, get race predictions, or plan your next session.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full max-w-lg">
                     {quickQuestions.map((q, i) => (
                       <button
                         key={i}
                         onClick={() => setMessage(q)}
-                        className="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm text-left transition-colors"
+                        className="p-3 rounded-full text-sm text-left transition-colors"
+                        style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
                       >
                         {q}
                       </button>
@@ -93,26 +84,23 @@ export default function Coach() {
               ) : (
                 <>
                   {conversation.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`flex items-start space-x-2 max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          msg.role === 'user' ? 'bg-primary-600' : 'bg-gray-200'
-                        }`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          msg.role === 'user' ? 'bg-teal-600 dark:bg-teal-500' : ''
+                        }`} style={msg.role !== 'user' ? { backgroundColor: 'var(--bg-surface)' } : undefined}>
                           {msg.role === 'user' ? (
-                            <User className="w-4 h-4 text-white" />
+                            <User className="w-3.5 h-3.5 text-white dark:text-gray-950" />
                           ) : (
-                            <Bot className="w-4 h-4 text-gray-700" />
+                            <Bot className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                           )}
                         </div>
-                        <div className={`px-4 py-3 rounded-2xl ${
+                        <div className={`px-4 py-3 text-sm ${
                           msg.role === 'user'
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}>
-                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                            ? 'bg-teal-600 dark:bg-teal-700 text-white rounded-2xl rounded-br-md'
+                            : 'rounded-2xl rounded-bl-md'
+                        }`} style={msg.role !== 'user' ? { backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' } : undefined}>
+                          <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                         </div>
                       </div>
                     </div>
@@ -120,14 +108,14 @@ export default function Coach() {
                   {chatMutation.isPending && (
                     <div className="flex justify-start">
                       <div className="flex items-start space-x-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                          <Bot className="w-4 h-4 text-gray-700" />
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--bg-surface)' }}>
+                          <Bot className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                         </div>
-                        <div className="px-4 py-3 bg-gray-100 rounded-2xl">
-                          <div className="flex space-x-2">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div className="px-4 py-3 rounded-2xl rounded-bl-md" style={{ backgroundColor: 'var(--bg-surface)' }}>
+                          <div className="flex space-x-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-muted)', animationDelay: '0ms' }}></div>
+                            <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-muted)', animationDelay: '150ms' }}></div>
+                            <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-muted)', animationDelay: '300ms' }}></div>
                           </div>
                         </div>
                       </div>
@@ -139,56 +127,55 @@ export default function Coach() {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className="flex space-x-2">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Ask your coach anything..."
-                className="input flex-1"
-                disabled={chatMutation.isPending}
-              />
-              <button
-                type="submit"
-                disabled={!message.trim() || chatMutation.isPending}
-                className="btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="w-5 h-5" />
-              </button>
-            </form>
+            <div className="p-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <form onSubmit={handleSend} className="flex space-x-2">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Ask your coach anything..."
+                  className="input flex-1"
+                  disabled={chatMutation.isPending}
+                />
+                <button
+                  type="submit"
+                  disabled={!message.trim() || chatMutation.isPending}
+                  className="btn-primary px-4 disabled:opacity-40"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
-        {/* Sidebar - Insights & Predictions */}
+        {/* Sidebar — Insights & Predictions */}
         <div className="space-y-4">
-          {/* Training Insights */}
           <div className="card">
             <div className="flex items-center space-x-2 mb-4">
-              <Sparkles className="w-5 h-5 text-primary-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Latest Insights</h3>
+              <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Insights</h3>
             </div>
             {insightsLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <div className="flex justify-center py-6">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-teal-600 border-t-transparent"></div>
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {insights?.insights?.substring(0, 200)}...
-                  </p>
-                </div>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  {insights?.insights?.substring(0, 200)}...
+                </p>
                 {insights?.analysis && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Weekly Average</span>
-                      <span className="font-semibold text-gray-900">
+                      <span style={{ color: 'var(--text-muted)' }}>Weekly Avg</span>
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {insights.analysis.weeklyAverage?.toFixed(1)} km
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Total Runs</span>
-                      <span className="font-semibold text-gray-900">
+                      <span style={{ color: 'var(--text-muted)' }}>Total Runs</span>
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {insights.analysis.totalRuns}
                       </span>
                     </div>
@@ -198,40 +185,39 @@ export default function Coach() {
             )}
           </div>
 
-          {/* Race Predictions */}
           {predictions && !predictions.error && (
             <div className="card">
               <div className="flex items-center space-x-2 mb-4">
-                <Target className="w-5 h-5 text-accent-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Race Predictions</h3>
+                <Target className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Race Predictions</h3>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {predictions['5K'] && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">5K</span>
-                    <span className="text-sm font-bold text-primary-600">{predictions['5K']}</span>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: 'var(--text-muted)' }}>5K</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-400">{predictions['5K']}</span>
                   </div>
                 )}
                 {predictions['10K'] && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">10K</span>
-                    <span className="text-sm font-bold text-primary-600">{predictions['10K']}</span>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: 'var(--text-muted)' }}>10K</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-400">{predictions['10K']}</span>
                   </div>
                 )}
                 {predictions.halfMarathon && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Half Marathon</span>
-                    <span className="text-sm font-bold text-primary-600">{predictions.halfMarathon}</span>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: 'var(--text-muted)' }}>Half Marathon</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-400">{predictions.halfMarathon}</span>
                   </div>
                 )}
                 {predictions.marathon && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Marathon</span>
-                    <span className="text-sm font-bold text-primary-600">{predictions.marathon}</span>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: 'var(--text-muted)' }}>Marathon</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-400">{predictions.marathon}</span>
                   </div>
                 )}
                 {predictions.confidence && (
-                  <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs mt-3 pt-3" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)' }}>
                     {predictions.confidence}
                   </p>
                 )}
