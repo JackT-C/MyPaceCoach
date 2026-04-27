@@ -140,27 +140,26 @@ ${goals.length > 0 ? goals.map(g => `- ${g.title} (${g.type})`).join('\n') : 'No
 
 ${userMessage ? `Runner's question: ${userMessage}` : ''}
 
-Provide helpful, actionable coaching advice. Be supportive, motivating, and practical. Focus on:
-1. Training trends and progress
-2. Recovery and injury prevention
-3. Specific recommendations for upcoming workouts
-4. Progress toward goals
+Provide a concise coaching summary as short bullet points. Cover:
+- Key training trends
+- Any injury/overtraining concerns
+- 1-2 specific recommendations for next week
 
-Keep your response conversational and encouraging, like a real coach would speak.
+Rules: No emojis. No markdown headers or tables. No special characters. Plain text bullet points only. Keep it under 150 words total.
 `;
 
   try {
     const completion = await aiComplete({
       model: AI_MODEL,
       messages: [
-        { role: 'system', content: 'You are a knowledgeable and supportive running coach. Provide personalized, actionable advice based on training data. Be encouraging, practical, and focused on helping runners improve safely.' },
+        { role: 'system', content: 'You are a running coach. Give concise, practical advice as plain text bullet points. Never use emojis, markdown formatting, tables, or special characters. Keep responses short.' },
         { role: 'user', content: context }
       ],
-      max_tokens: 1000
+      max_tokens: 400
     });
 
     return {
-      insights: completion.choices[0]?.message?.content || 'Unable to generate insights at this time.',
+      insights: stripFormatting(completion.choices[0]?.message?.content || 'Unable to generate insights at this time.'),
       analysis
     };
   } catch (error) {
@@ -186,7 +185,7 @@ You are an AI running coach named Coach. You have access to the runner's trainin
 - Average pace: ${formatPace(analysis.averagePace)}
 - Active goals: ${goals.map(g => g.title).join(', ') || 'None'}
 
-Provide personalized running advice. Be conversational, supportive, and practical. Use the runner's data to give specific recommendations.
+Provide personalized running advice. Be conversational, supportive, and practical. Use the runner's data to give specific recommendations. Never use emojis or special characters.
 `;
 
   try {
@@ -205,7 +204,7 @@ Provide personalized running advice. Be conversational, supportive, and practica
       max_tokens: 800
     });
 
-    return completion.choices[0]?.message?.content || 'Sorry, I couldn\'t process that. Can you try rephrasing?';
+    return stripFormatting(completion.choices[0]?.message?.content || 'Sorry, I couldn\'t process that. Can you try rephrasing?');
   } catch (error) {
     console.error('Error in AI chat:', error);
     throw error;
@@ -378,6 +377,19 @@ Make sure:
   }
 }
 
+// Strip emojis, markdown formatting, and special characters from AI responses
+function stripFormatting(text) {
+  if (!text) return text;
+  return text
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{27BF}\u{2B50}\u{FE0F}\u{200D}\u{20E3}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2702}-\u{27B0}]/gu, '')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+    .replace(/\|/g, '')
+    .replace(/---+/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // Helper function to format pace
 function formatPace(pace) {
   if (!pace || pace === 0) return 'N/A';
@@ -463,13 +475,13 @@ Respond naturally and warmly, like a coach who genuinely cares:`;
     const completion = await aiComplete({
       model: AI_MODEL,
       messages: [
-        { role: 'system', content: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic.' },
+        { role: 'system', content: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic. Never use emojis or special characters.' },
         { role: 'user', content: prompt }
       ],
       max_tokens: 300
     });
 
-    const message = completion.choices[0]?.message?.content || "Great job out there! Keep up the good work.";
+    const message = stripFormatting(completion.choices[0]?.message?.content || "Great job out there! Keep up the good work.");
 
     return {
       message: message.trim(),
