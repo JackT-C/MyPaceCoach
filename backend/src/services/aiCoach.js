@@ -116,7 +116,7 @@ Keep your response conversational and encouraging, like a real coach would speak
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: 'You are a knowledgeable and supportive running coach. Provide personalized, actionable advice based on training data. Be encouraging, practical, and focused on helping runners improve safely.'
     });
 
@@ -155,7 +155,7 @@ Provide personalized running advice. Be conversational, supportive, and practica
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: systemContext
     });
 
@@ -228,7 +228,7 @@ Format your response as JSON with this structure:
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: 'You are a running coach expert at predicting race times based on training data. Provide realistic, achievable predictions.'
     });
 
@@ -299,7 +299,7 @@ Make sure:
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: 'You are an expert running coach. You MUST respond with valid JSON only, no markdown, no explanations, just pure JSON.'
     });
 
@@ -418,7 +418,7 @@ IMPORTANT INSTRUCTIONS:
 Respond naturally and warmly, like a coach who genuinely cares:`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic.'
     });
 
