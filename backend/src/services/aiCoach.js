@@ -1,11 +1,16 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { Op } from 'sequelize';
 import Activity from '../models/Activity.js';
 import Goal from '../models/Goal.js';
 import User from '../models/User.js';
 import RacePB from '../models/RacePB.js';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const openrouter = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY
+});
+
+const AI_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
 
 /**
  * Analyze training data and provide insights
@@ -115,16 +120,17 @@ Keep your response conversational and encouraging, like a real coach would speak
 `;
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      systemInstruction: 'You are a knowledgeable and supportive running coach. Provide personalized, actionable advice based on training data. Be encouraging, practical, and focused on helping runners improve safely.'
+    const completion = await openrouter.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: 'You are a knowledgeable and supportive running coach. Provide personalized, actionable advice based on training data. Be encouraging, practical, and focused on helping runners improve safely.' },
+        { role: 'user', content: context }
+      ],
+      max_tokens: 1000
     });
 
-    const result = await model.generateContent(context);
-    const text = result.response.text();
-
     return {
-      insights: text || 'Unable to generate insights at this time.',
+      insights: completion.choices[0]?.message?.content || 'Unable to generate insights at this time.',
       analysis
     };
   } catch (error) {
@@ -154,21 +160,22 @@ Provide personalized running advice. Be conversational, supportive, and practica
 `;
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      systemInstruction: systemContext
+    const messages = [
+      { role: 'system', content: systemContext },
+      ...conversationHistory.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content
+      })),
+      { role: 'user', content: message }
+    ];
+
+    const completion = await openrouter.chat.completions.create({
+      model: AI_MODEL,
+      messages,
+      max_tokens: 800
     });
 
-    const history = conversationHistory.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
-
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(message);
-    const text = result.response.text();
-
-    return text || 'Sorry, I couldn\'t process that. Can you try rephrasing?';
+    return completion.choices[0]?.message?.content || 'Sorry, I couldn\'t process that. Can you try rephrasing?';
   } catch (error) {
     console.error('Error in AI chat:', error);
     throw error;
@@ -227,13 +234,16 @@ Format your response as JSON with this structure:
 `;
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      systemInstruction: 'You are a running coach expert at predicting race times based on training data. Provide realistic, achievable predictions.'
+    const completion = await openrouter.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: 'You are a running coach expert at predicting race times based on training data. Provide realistic, achievable predictions.' },
+        { role: 'user', content: context }
+      ],
+      max_tokens: 500
     });
 
-    const result = await model.generateContent(context);
-    const response = result.response.text();
+    const response = completion.choices[0]?.message?.content;
     // Try to parse JSON from response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -298,13 +308,16 @@ Make sure:
 `;
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      systemInstruction: 'You are an expert running coach. You MUST respond with valid JSON only, no markdown, no explanations, just pure JSON.'
+    const completion = await openrouter.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: 'You are an expert running coach. You MUST respond with valid JSON only, no markdown, no explanations, just pure JSON.' },
+        { role: 'user', content: context }
+      ],
+      max_tokens: 2000
     });
 
-    const result = await model.generateContent(context);
-    const response = result.response.text();
+    const response = completion.choices[0]?.message?.content;
     
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -417,13 +430,16 @@ IMPORTANT INSTRUCTIONS:
 
 Respond naturally and warmly, like a coach who genuinely cares:`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      systemInstruction: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic.'
+    const completion = await openrouter.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 300
     });
 
-    const result = await model.generateContent(prompt);
-    const message = result.response.text() || "Great job out there! Keep up the good work.";
+    const message = completion.choices[0]?.message?.content || "Great job out there! Keep up the good work.";
 
     return {
       message: message.trim(),
