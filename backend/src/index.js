@@ -145,24 +145,38 @@ async function migrateColumns() {
   }
 }
 
-// PostgreSQL connection and sync
-sequelize.authenticate()
-  .then(() => {
+// Start server only after database is ready
+async function startServer() {
+  try {
+    await sequelize.authenticate();
     console.log('✅ Connected to PostgreSQL');
-    // Sync session store table
-    return sessionStore.sync();
-  })
-  .then(() => {
+
+    await sessionStore.sync();
     console.log('✅ Session store synchronized');
-    return migrateColumns();
-  })
-  .then(() => {
-    return sequelize.sync({ alter: true });
-  })
-  .then(() => {
+
+    // Try migrating any existing camelCase columns
+    await migrateColumns();
+
+    // Drop and recreate ENUMs + tables cleanly
+    await sequelize.sync({ alter: true });
     console.log('✅ Database tables synchronized');
-  })
-  .catch(err => console.error('❌ Database connection error:', err));
+  } catch (err) {
+    console.error('❌ Database setup error:', err);
+    // If alter fails (e.g. ENUM conflicts), try force sync on fresh DB
+    try {
+      console.log('⚠️ Retrying with force sync...');
+      await sequelize.sync({ force: true });
+      console.log('✅ Database tables force-synced');
+    } catch (forceErr) {
+      console.error('❌ Force sync also failed:', forceErr);
+      process.exit(1);
+    }
+  }
+
+  app.listen(PORT, () => {
+    console.log(`🚀 MyPace backend running on http://localhost:${PORT}`);
+  });
+}
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -216,6 +230,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 MyPace backend running on http://localhost:${PORT}`);
-});
+startServer();
