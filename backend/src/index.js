@@ -94,6 +94,57 @@ app.use((req, res, next) => {
   next();
 });
 
+// Migrate camelCase columns to snake_case if needed
+async function migrateColumns() {
+  const renameMap = {
+    users: {
+      stravaId: 'strava_id', firstName: 'first_name', lastName: 'last_name',
+      profileMedium: 'profile_medium', accessToken: 'access_token',
+      refreshToken: 'refresh_token', tokenExpiresAt: 'token_expires_at',
+      weeklyMileage: 'weekly_mileage', monthlyMileage: 'monthly_mileage',
+      totalRuns: 'total_runs', coachingStyle: 'coaching_style',
+      racePBs: 'race_pbs', lastSync: 'last_sync',
+      createdAt: 'created_at', updatedAt: 'updated_at'
+    },
+    activities: {
+      userId: 'user_id', stravaId: 'strava_id', movingTime: 'moving_time',
+      elapsedTime: 'elapsed_time', totalElevationGain: 'total_elevation_gain',
+      averageSpeed: 'average_speed', maxSpeed: 'max_speed',
+      averageHeartrate: 'average_heartrate', maxHeartrate: 'max_heartrate',
+      averagePace: 'average_pace', effortLevel: 'effort_level',
+      isRace: 'is_race', raceDistance: 'race_distance',
+      injuryNotes: 'injury_notes', painLevel: 'pain_level',
+      createdAt: 'created_at', updatedAt: 'updated_at'
+    },
+    goals: {
+      userId: 'user_id', raceType: 'race_type', targetTime: 'target_time',
+      raceDate: 'race_date', targetDistance: 'target_distance',
+      targetPeriod: 'target_period', runsPerWeek: 'runs_per_week',
+      trainingPlan: 'training_plan', startDate: 'start_date',
+      completedDate: 'completed_date',
+      createdAt: 'created_at', updatedAt: 'updated_at'
+    },
+    race_pbs: {
+      userId: 'user_id', raceName: 'race_name',
+      createdAt: 'created_at', updatedAt: 'updated_at'
+    }
+  };
+
+  for (const [table, columns] of Object.entries(renameMap)) {
+    for (const [oldCol, newCol] of Object.entries(columns)) {
+      try {
+        await sequelize.query(
+          `ALTER TABLE "${table}" RENAME COLUMN "${oldCol}" TO "${newCol}"`,
+          { logging: false }
+        );
+        console.log(`  Renamed ${table}.${oldCol} → ${newCol}`);
+      } catch (e) {
+        // Column already renamed or doesn't exist — ignore
+      }
+    }
+  }
+}
+
 // PostgreSQL connection and sync
 sequelize.authenticate()
   .then(() => {
@@ -103,7 +154,10 @@ sequelize.authenticate()
   })
   .then(() => {
     console.log('✅ Session store synchronized');
-    return sequelize.sync({ alter: true }); // Auto-sync tables (use migrations in production)
+    return migrateColumns();
+  })
+  .then(() => {
+    return sequelize.sync({ alter: true });
   })
   .then(() => {
     console.log('✅ Database tables synchronized');
