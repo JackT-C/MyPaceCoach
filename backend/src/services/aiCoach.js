@@ -140,22 +140,17 @@ ${goals.length > 0 ? goals.map(g => `- ${g.title} (${g.type})`).join('\n') : 'No
 
 ${userMessage ? `Runner's question: ${userMessage}` : ''}
 
-Provide a concise coaching summary as short bullet points. Cover:
-- Key training trends
-- Any injury/overtraining concerns
-- 1-2 specific recommendations for next week
-
-Rules: No emojis. No markdown headers or tables. No special characters. Plain text bullet points only. Keep it under 150 words total.
+Respond with EXACTLY 4-6 bullet points. Each bullet must start with "- " and be one sentence max. No introductions, no conclusions, no headers, no paragraphs. Just the bullets.
 `;
 
   try {
     const completion = await aiComplete({
       model: AI_MODEL,
       messages: [
-        { role: 'system', content: 'You are a running coach. Give concise, practical advice as plain text bullet points. Never use emojis, markdown formatting, tables, or special characters. Keep responses short.' },
+        { role: 'system', content: 'You are a running coach. You MUST respond with only 4-6 bullet points starting with "- ". One short sentence per bullet. No greetings, no sign-offs, no headers, no paragraphs, no emojis, no markdown. Just bullet points.' },
         { role: 'user', content: context }
       ],
-      max_tokens: 400
+      max_tokens: 250
     });
 
     return {
