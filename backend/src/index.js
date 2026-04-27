@@ -186,24 +186,6 @@ app.use('/api/user', userRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/race-pbs', racePBRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    message: 'MyPace API is running',
-    env: {
-      NODE_ENV: process.env.NODE_ENV || 'not set',
-      STRAVA_CLIENT_ID: process.env.STRAVA_CLIENT_ID ? 'set' : 'MISSING',
-      STRAVA_CLIENT_SECRET: process.env.STRAVA_CLIENT_SECRET ? 'set' : 'MISSING',
-      STRAVA_CALLBACK_URL: process.env.STRAVA_CALLBACK_URL || 'MISSING',
-      FRONTEND_URL: process.env.FRONTEND_URL || 'MISSING',
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'set' : 'MISSING',
-      SESSION_SECRET: process.env.SESSION_SECRET ? 'set' : 'MISSING',
-      DATABASE_URL: process.env.DATABASE_URL ? 'set' : 'MISSING'
-    }
-  });
-});
-
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, '../../frontend/dist');
