@@ -16,6 +16,13 @@ router.get('/insights', isAuthenticated, async (req, res) => {
     const insights = await generateCoachingInsights(req.user.id);
     res.json(insights);
   } catch (error) {
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+      const analysis = await analyzeTraining(req.user.id);
+      return res.json({
+        insights: 'AI coaching is temporarily unavailable due to API rate limits. Please try again in a minute. In the meantime, keep up your training!',
+        analysis
+      });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -32,6 +39,9 @@ router.post('/chat', isAuthenticated, async (req, res) => {
     const response = await chatWithCoach(req.user.id, message, history);
     res.json({ response });
   } catch (error) {
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+      return res.json({ response: 'I\'m currently rate-limited by the AI service. Please wait a moment and try again!' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -42,6 +52,9 @@ router.get('/predictions', isAuthenticated, async (req, res) => {
     const predictions = await predictRaceTimes(req.user.id);
     res.json(predictions);
   } catch (error) {
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+      return res.json({ error: 'AI predictions temporarily unavailable due to rate limits. Please try again shortly.' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -69,6 +82,9 @@ router.post('/voice', isAuthenticated, async (req, res) => {
     const response = await voiceCoaching(req.user.id, transcript, activityData, activityId);
     res.json(response);
   } catch (error) {
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+      return res.json({ message: 'Great effort out there! The AI coach is briefly unavailable, but keep up the good work!', emotion: 'neutral', emotionConfidence: 'low' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
