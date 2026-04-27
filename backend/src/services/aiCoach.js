@@ -11,6 +11,30 @@ const openrouter = new OpenAI({
 });
 
 const AI_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const FALLBACK_MODEL = 'google/gemma-3-1b-it:free';
+
+// Retry wrapper for OpenRouter rate limits (8 req/min on free models)
+async function aiComplete(params, retries = 3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await openrouter.chat.completions.create(params);
+    } catch (error) {
+      const isRateLimit = error.status === 429 || error.code === 429;
+      if (isRateLimit && attempt < retries - 1) {
+        const delay = (attempt + 1) * 10000; // 10s, 20s, 30s
+        console.log(`Rate limited, retrying in ${delay / 1000}s (attempt ${attempt + 1}/${retries})...`);
+        await new Promise(r => setTimeout(r, delay));
+        // On last retry attempt, try fallback model
+        if (attempt === retries - 2) {
+          console.log(`Switching to fallback model: ${FALLBACK_MODEL}`);
+          params = { ...params, model: FALLBACK_MODEL };
+        }
+        continue;
+      }
+      throw error;
+    }
+  }
+}
 
 /**
  * Analyze training data and provide insights
@@ -120,7 +144,7 @@ Keep your response conversational and encouraging, like a real coach would speak
 `;
 
   try {
-    const completion = await openrouter.chat.completions.create({
+    const completion = await aiComplete({
       model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are a knowledgeable and supportive running coach. Provide personalized, actionable advice based on training data. Be encouraging, practical, and focused on helping runners improve safely.' },
@@ -169,7 +193,7 @@ Provide personalized running advice. Be conversational, supportive, and practica
       { role: 'user', content: message }
     ];
 
-    const completion = await openrouter.chat.completions.create({
+    const completion = await aiComplete({
       model: AI_MODEL,
       messages,
       max_tokens: 800
@@ -234,7 +258,7 @@ Format your response as JSON with this structure:
 `;
 
   try {
-    const completion = await openrouter.chat.completions.create({
+    const completion = await aiComplete({
       model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are a running coach expert at predicting race times based on training data. Provide realistic, achievable predictions.' },
@@ -308,7 +332,7 @@ Make sure:
 `;
 
   try {
-    const completion = await openrouter.chat.completions.create({
+    const completion = await aiComplete({
       model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are an expert running coach. You MUST respond with valid JSON only, no markdown, no explanations, just pure JSON.' },
@@ -430,7 +454,7 @@ IMPORTANT INSTRUCTIONS:
 
 Respond naturally and warmly, like a coach who genuinely cares:`;
 
-    const completion = await openrouter.chat.completions.create({
+    const completion = await aiComplete({
       model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic.' },

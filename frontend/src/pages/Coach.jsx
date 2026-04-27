@@ -10,13 +10,16 @@ export default function Coach() {
 
   const { data: insights, isLoading: insightsLoading } = useQuery({
     queryKey: ['insights'],
-    queryFn: () => coach.getInsights().then(res => res.data)
+    queryFn: () => coach.getInsights().then(res => res.data),
+    staleTime: 5 * 60 * 1000
   })
 
   const { data: predictions } = useQuery({
     queryKey: ['predictions'],
     queryFn: () => coach.getPredictions().then(res => res.data),
-    retry: false
+    retry: false,
+    enabled: !!insights, // wait for insights to load first
+    staleTime: 10 * 60 * 1000
   })
 
   const chatMutation = useMutation({
