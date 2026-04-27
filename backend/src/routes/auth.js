@@ -27,12 +27,14 @@ router.get('/strava/callback',
     passport.authenticate('strava', (err, user, info) => {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
       if (err) {
-        console.error('Strava auth error:', err);
-        return res.redirect(`${frontendUrl}?error=auth_failed`);
+        console.error('Strava auth error:', err.message, err.stack);
+        const msg = encodeURIComponent(err.message || 'auth_failed');
+        return res.redirect(`${frontendUrl}?error=${msg}`);
       }
       if (!user) {
         console.error('Strava auth: no user returned', info);
-        return res.redirect(`${frontendUrl}?error=no_user`);
+        const msg = encodeURIComponent(info?.message || 'no_user');
+        return res.redirect(`${frontendUrl}?error=${msg}`);
       }
       req.logIn(user, (loginErr) => {
         if (loginErr) {
