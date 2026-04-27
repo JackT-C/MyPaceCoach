@@ -1,13 +1,11 @@
-import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Op } from 'sequelize';
 import Activity from '../models/Activity.js';
 import Goal from '../models/Goal.js';
 import User from '../models/User.js';
 import RacePB from '../models/RacePB.js';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Analyze training data and provide insights
@@ -117,24 +115,16 @@ Keep your response conversational and encouraging, like a real coach would speak
 `;
 
   try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a knowledgeable and supportive running coach. Provide personalized, actionable advice based on training data. Be encouraging, practical, and focused on helping runners improve safely.'
-        },
-        {
-          role: 'user',
-          content: context
-        }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.7,
-      max_tokens: 1000
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: 'You are a knowledgeable and supportive running coach. Provide personalized, actionable advice based on training data. Be encouraging, practical, and focused on helping runners improve safely.'
     });
 
+    const result = await model.generateContent(context);
+    const text = result.response.text();
+
     return {
-      insights: completion.choices[0]?.message?.content || 'Unable to generate insights at this time.',
+      insights: text || 'Unable to generate insights at this time.',
       analysis
     };
   } catch (error) {
@@ -163,21 +153,22 @@ You are an AI running coach named Coach. You have access to the runner's trainin
 Provide personalized running advice. Be conversational, supportive, and practical. Use the runner's data to give specific recommendations.
 `;
 
-  const messages = [
-    { role: 'system', content: systemContext },
-    ...conversationHistory,
-    { role: 'user', content: message }
-  ];
-
   try {
-    const completion = await groq.chat.completions.create({
-      messages,
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.8,
-      max_tokens: 800
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: systemContext
     });
 
-    return completion.choices[0]?.message?.content || 'Sorry, I couldn\'t process that. Can you try rephrasing?';
+    const history = conversationHistory.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(message);
+    const text = result.response.text();
+
+    return text || 'Sorry, I couldn\'t process that. Can you try rephrasing?';
   } catch (error) {
     console.error('Error in AI chat:', error);
     throw error;
@@ -236,23 +227,13 @@ Format your response as JSON with this structure:
 `;
 
   try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a running coach expert at predicting race times based on training data. Provide realistic, achievable predictions.'
-        },
-        {
-          role: 'user',
-          content: context
-        }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.5,
-      max_tokens: 500
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: 'You are a running coach expert at predicting race times based on training data. Provide realistic, achievable predictions.'
     });
 
-    const response = completion.choices[0]?.message?.content;
+    const result = await model.generateContent(context);
+    const response = result.response.text();
     // Try to parse JSON from response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -317,23 +298,13 @@ Make sure:
 `;
 
   try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert running coach. You MUST respond with valid JSON only, no markdown, no explanations, just pure JSON.'
-        },
-        {
-          role: 'user',
-          content: context
-        }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.3,
-      max_tokens: 2000
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: 'You are an expert running coach. You MUST respond with valid JSON only, no markdown, no explanations, just pure JSON.'
     });
 
-    const response = completion.choices[0]?.message?.content;
+    const result = await model.generateContent(context);
+    const response = result.response.text();
     
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -446,23 +417,13 @@ IMPORTANT INSTRUCTIONS:
 
 Respond naturally and warmly, like a coach who genuinely cares:`;
 
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.8, // Higher temperature for more natural, varied responses
-      max_tokens: 300 // Keep responses concise
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic.'
     });
 
-    const message = completion.choices[0]?.message?.content || "Great job out there! Keep up the good work.";
+    const result = await model.generateContent(prompt);
+    const message = result.response.text() || "Great job out there! Keep up the good work.";
 
     return {
       message: message.trim(),

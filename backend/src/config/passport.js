@@ -12,10 +12,18 @@ passport.use('strava', new OAuth2Strategy({
   },
   async (accessToken, refreshToken, params, profile, done) => {
     try {
+      console.log('Strava OAuth: token exchange successful, fetching athlete profile...');
       // Fetch user profile from Strava API
       const response = await fetch('https://www.strava.com/api/v3/athlete', {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Strava API error:', response.status, errorText);
+        return done(new Error(`Strava API returned ${response.status}`));
+      }
+      
       const stravaProfile = await response.json();
       
       // Check if user exists - convert stravaId to string

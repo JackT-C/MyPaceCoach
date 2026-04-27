@@ -23,10 +23,26 @@ router.get('/strava',
 // Strava OAuth callback
 router.get('/strava/callback',
   ensureSessionPassport,
-  passport.authenticate('strava', {
-    successRedirect: `${process.env.FRONTEND_URL || 'http://localhost:8081'}/dashboard`,
-    failureRedirect: process.env.FRONTEND_URL || 'http://localhost:8081'
-  })
+  (req, res, next) => {
+    passport.authenticate('strava', (err, user, info) => {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+      if (err) {
+        console.error('Strava auth error:', err);
+        return res.redirect(`${frontendUrl}?error=auth_failed`);
+      }
+      if (!user) {
+        console.error('Strava auth: no user returned', info);
+        return res.redirect(`${frontendUrl}?error=no_user`);
+      }
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          console.error('Login error after Strava auth:', loginErr);
+          return res.redirect(`${frontendUrl}?error=login_failed`);
+        }
+        return res.redirect(`${frontendUrl}/dashboard`);
+      });
+    })(req, res, next);
+  }
 );
 
 // Manual entry route (no Strava required)

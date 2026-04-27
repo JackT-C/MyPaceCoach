@@ -1,8 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import SequelizeStore from 'connect-session-sequelize';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sequelize from './config/database.js';
@@ -30,10 +30,13 @@ import racePBRoutes from './routes/racePBs.js';
 // Import services
 import { syncAllUsersActivities } from './services/stravaSync.js';
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust Heroku's reverse proxy (required for secure cookies & sessions)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 // Create session store
 const SessionStore = SequelizeStore(session.Store);
@@ -54,13 +57,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration - must be before passport
+const isProduction = process.env.NODE_ENV === 'production';
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mypace-secret-key-2026',
   store: sessionStore,
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
+  proxy: isProduction,
   cookie: {
-    secure: false,
+    secure: isProduction,
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000
