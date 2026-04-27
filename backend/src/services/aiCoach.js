@@ -11,21 +11,27 @@ const openrouter = new OpenAI({
 });
 
 const AI_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
-const FALLBACK_MODEL = 'google/gemma-3-1b-it:free';
+const FALLBACK_MODEL = 'nvidia/nemotron-3-nano-30b-a3b:free';
 
 // Retry wrapper for OpenRouter rate limits (8 req/min on free models)
-async function aiComplete(params, retries = 3) {
-  for (let attempt = 0; attempt < retries; attempt++) {
+// Keeps total time under Heroku's 30s request timeout
+async function aiComplete(params, retries = 2) {
+  // Prefer Groq as provider (tends to have better availability)
+  params = {
+    ...params,
+    provider: { order: ['Groq'], allow_fallbacks: true }
+  };
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await openrouter.chat.completions.create(params);
     } catch (error) {
       const isRateLimit = error.status === 429 || error.code === 429;
-      if (isRateLimit && attempt < retries - 1) {
-        const delay = (attempt + 1) * 10000; // 10s, 20s, 30s
+      if (isRateLimit && attempt < retries) {
+        const delay = 8000; // 8s between retries
         console.log(`Rate limited, retrying in ${delay / 1000}s (attempt ${attempt + 1}/${retries})...`);
         await new Promise(r => setTimeout(r, delay));
-        // On last retry attempt, try fallback model
-        if (attempt === retries - 2) {
+        // On last retry, switch to fallback model
+        if (attempt === retries - 1) {
           console.log(`Switching to fallback model: ${FALLBACK_MODEL}`);
           params = { ...params, model: FALLBACK_MODEL };
         }
