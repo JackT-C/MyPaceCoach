@@ -19,12 +19,4 @@ MyPace is a full-stack web app that acts as a personal AI running coach. It conn
 - **AI:** OpenRouter API (Llama 3.3 70B) with automatic retry and model fallback
 - **Deployment:** Heroku with GitHub auto-deploy
 
-## Key Engineering Decisions
-
-- Retry with backoff and fallback models for free-tier API rate limits
-- Staggered frontend queries to minimize concurrent AI requests
-- Server-side sanitization to strip markdown/emojis from AI output
-- DB migration layer for seamless Sequelize field mapping
-- Session auth with secure cookies and Heroku trust proxy
-
 Built as a personal project combining my interests in running and software engineering.
