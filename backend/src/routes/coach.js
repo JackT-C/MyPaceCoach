@@ -17,13 +17,6 @@ router.get('/insights', isAuthenticated, async (req, res) => {
     res.json(insights);
   } catch (error) {
     console.error('Coach insights error:', error.status, error.message, error.code);
-    if (error.status === 429 || error.code === 'rate_limit_exceeded') {
-      const analysis = await analyzeTraining(req.user.id);
-      return res.json({
-        insights: 'AI coaching is temporarily unavailable due to API rate limits. Please try again in a minute. In the meantime, keep up your training!',
-        analysis
-      });
-    }
     res.status(500).json({ error: error.message });
   }
 });

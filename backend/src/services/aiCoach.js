@@ -142,14 +142,42 @@ Respond with EXACTLY 4-6 bullet points. Each bullet must start with "- " and be 
       max_tokens: 250
     });
 
-    return {
-      insights: stripFormatting(completion.choices[0]?.message?.content || 'Unable to generate insights at this time.'),
-      analysis
-    };
+    const content = completion.choices[0]?.message?.content;
+    if (content && content.trim().length > 10) {
+      return { insights: stripFormatting(content), analysis };
+    }
+    // AI returned empty/useless response, use local insights
+    return { insights: generateLocalInsights(analysis), analysis };
   } catch (error) {
     console.error('Error generating coaching insights:', error);
-    throw error;
+    // Always return something useful
+    const analysis = await analyzeTraining(userId).catch(() => null);
+    return {
+      insights: generateLocalInsights(analysis),
+      analysis
+    };
   }
+}
+
+// Generate insights locally when AI is unavailable
+function generateLocalInsights(analysis) {
+  if (!analysis) return '- No training data available yet. Log some runs to get started.';
+  const bullets = [];
+  bullets.push(`- ${analysis.totalRuns} runs totalling ${analysis.totalDistance.toFixed(1)}km over the last 30 days.`);
+  if (analysis.weeklyAverage > 0) {
+    bullets.push(`- Weekly average of ${analysis.weeklyAverage.toFixed(1)}km at ${formatPace(analysis.averagePace)} average pace.`);
+  }
+  if (analysis.overtrainingRisk) {
+    bullets.push('- Volume increased over 30% this week, consider an easier week to recover.');
+  } else if (analysis.hasConsistentTraining) {
+    bullets.push('- Training has been consistent, keep up the good routine.');
+  }
+  if (analysis.hasLongRun) {
+    bullets.push('- Long runs are in the mix, which builds great endurance.');
+  } else {
+    bullets.push('- Consider adding a longer run each week to build endurance.');
+  }
+  return bullets.join('\n');
 }
 
 /**
