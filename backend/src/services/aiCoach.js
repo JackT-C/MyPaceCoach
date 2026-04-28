@@ -119,9 +119,9 @@ Training Summary (last 30 days):
 - Has long runs: ${analysis.hasLongRun ? 'Yes' : 'No'}
 - Overtraining risk: ${analysis.overtrainingRisk ? 'Yes - sudden volume increase detected' : 'No'}
 
-Recent Activities:
-${analysis.activities.slice(0, 5).map(a => 
-  `- ${a.name}: ${(a.distance / 1000).toFixed(2)}km at ${formatPace(a.pace)} on ${a.date.toLocaleDateString()}`
+Recent Activities (oldest to newest):
+${analysis.activities.slice(0, 5).reverse().map(a => 
+  `- ${a.date.toISOString().split('T')[0]}: ${a.name} - ${(a.distance / 1000).toFixed(2)}km at ${formatPace(a.pace)}`
 ).join('\n')}
 
 Active Goals:
