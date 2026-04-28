@@ -7,14 +7,14 @@ import RacePB from '../models/RacePB.js';
 
 const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY
+  apiKey: process.env.OPENROUTER_API_KEY,
+  timeout: 12000, // 12s per request to stay under Heroku's 30s
 });
 
 const AI_MODELS = [
   'nvidia/nemotron-3-nano-30b-a3b:free',
   'meta-llama/llama-3.3-70b-instruct:free',
   'openai/gpt-oss-120b:free',
-  'minimax/minimax-m2.5:free',
 ];
 
 // Try each model in order until one succeeds
@@ -23,14 +23,22 @@ async function aiComplete(params) {
   for (const model of AI_MODELS) {
     try {
       console.log(`Trying model: ${model}`);
-      return await openrouter.chat.completions.create({ ...params, model });
+      const result = await openrouter.chat.completions.create({ ...params, model });
+      const content = result.choices?.[0]?.message?.content;
+      if (content && content.trim().length > 0) {
+        console.log(`Model ${model} succeeded (${content.length} chars)`);
+        return result;
+      }
+      console.log(`Model ${model} returned empty response, trying next...`);
+      continue;
     } catch (error) {
       console.log(`Model ${model} failed: ${error.status || error.code} ${error.message}`);
       lastError = error;
       continue;
     }
   }
-  throw lastError;
+  if (lastError) throw lastError;
+  throw new Error('All models returned empty responses');
 }
 
 /**
