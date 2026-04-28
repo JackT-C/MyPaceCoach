@@ -10,25 +10,27 @@ const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY
 });
 
-const AI_MODEL = 'nvidia/nemotron-3-nano-30b-a3b:free';
-const FALLBACK_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const AI_MODELS = [
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'openai/gpt-oss-120b:free',
+  'minimax/minimax-m2.5:free',
+];
 
-// Retry wrapper for OpenRouter rate limits (8 req/min on free models)
-// Keeps total time under Heroku's 30s request timeout
-async function aiComplete(params, retries = 1) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
+// Try each model in order until one succeeds
+async function aiComplete(params) {
+  let lastError;
+  for (const model of AI_MODELS) {
     try {
-      return await openrouter.chat.completions.create(params);
+      console.log(`Trying model: ${model}`);
+      return await openrouter.chat.completions.create({ ...params, model });
     } catch (error) {
-      const isRateLimit = error.status === 429 || error.code === 429;
-      if (isRateLimit && attempt < retries) {
-        console.log(`Rate limited on ${params.model}, switching to fallback: ${FALLBACK_MODEL}`);
-        params = { ...params, model: FALLBACK_MODEL };
-        continue;
-      }
-      throw error;
+      console.log(`Model ${model} failed: ${error.status || error.code} ${error.message}`);
+      lastError = error;
+      continue;
     }
   }
+  throw lastError;
 }
 
 /**
@@ -134,7 +136,6 @@ Respond with EXACTLY 4-6 bullet points. Each bullet must start with "- " and be 
 
   try {
     const completion = await aiComplete({
-      model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are a running coach. You MUST respond with only 4-6 bullet points starting with "- ". One short sentence per bullet. No greetings, no sign-offs, no headers, no paragraphs, no emojis, no markdown. Just bullet points.' },
         { role: 'user', content: context }
@@ -142,42 +143,14 @@ Respond with EXACTLY 4-6 bullet points. Each bullet must start with "- " and be 
       max_tokens: 250
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (content && content.trim().length > 10) {
-      return { insights: stripFormatting(content), analysis };
-    }
-    // AI returned empty/useless response, use local insights
-    return { insights: generateLocalInsights(analysis), analysis };
-  } catch (error) {
-    console.error('Error generating coaching insights:', error);
-    // Always return something useful
-    const analysis = await analyzeTraining(userId).catch(() => null);
     return {
-      insights: generateLocalInsights(analysis),
+      insights: stripFormatting(completion.choices[0]?.message?.content || 'No insights available.'),
       analysis
     };
+  } catch (error) {
+    console.error('Error generating coaching insights:', error);
+    throw error;
   }
-}
-
-// Generate insights locally when AI is unavailable
-function generateLocalInsights(analysis) {
-  if (!analysis) return '- No training data available yet. Log some runs to get started.';
-  const bullets = [];
-  bullets.push(`- ${analysis.totalRuns} runs totalling ${analysis.totalDistance.toFixed(1)}km over the last 30 days.`);
-  if (analysis.weeklyAverage > 0) {
-    bullets.push(`- Weekly average of ${analysis.weeklyAverage.toFixed(1)}km at ${formatPace(analysis.averagePace)} average pace.`);
-  }
-  if (analysis.overtrainingRisk) {
-    bullets.push('- Volume increased over 30% this week, consider an easier week to recover.');
-  } else if (analysis.hasConsistentTraining) {
-    bullets.push('- Training has been consistent, keep up the good routine.');
-  }
-  if (analysis.hasLongRun) {
-    bullets.push('- Long runs are in the mix, which builds great endurance.');
-  } else {
-    bullets.push('- Consider adding a longer run each week to build endurance.');
-  }
-  return bullets.join('\n');
 }
 
 /**
@@ -211,7 +184,6 @@ Provide personalized running advice. Be conversational, supportive, and practica
     ];
 
     const completion = await aiComplete({
-      model: AI_MODEL,
       messages,
       max_tokens: 800
     });
@@ -276,7 +248,6 @@ Format your response as JSON with this structure:
 
   try {
     const completion = await aiComplete({
-      model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are a running coach expert at predicting race times based on training data. Provide realistic, achievable predictions.' },
         { role: 'user', content: context }
@@ -285,6 +256,7 @@ Format your response as JSON with this structure:
     });
 
     const response = completion.choices[0]?.message?.content;
+    if (!response) return { error: 'Could not generate predictions. Please try again.' };
     // Try to parse JSON from response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -350,7 +322,6 @@ Make sure:
 
   try {
     const completion = await aiComplete({
-      model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are an expert running coach. You MUST respond with valid JSON only, no markdown, no explanations, just pure JSON.' },
         { role: 'user', content: context }
@@ -359,6 +330,7 @@ Make sure:
     });
 
     const response = completion.choices[0]?.message?.content;
+    if (!response) throw new Error('AI returned empty response');
     
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -485,7 +457,6 @@ IMPORTANT INSTRUCTIONS:
 Respond naturally and warmly, like a coach who genuinely cares:`;
 
     const completion = await aiComplete({
-      model: AI_MODEL,
       messages: [
         { role: 'system', content: 'You are an emotionally intelligent running coach who excels at voice-based coaching conversations. You understand both the physical and emotional aspects of running. Keep responses conversational, brief (2-3 sentences), and empathetic. Never use emojis or special characters.' },
         { role: 'user', content: prompt }
